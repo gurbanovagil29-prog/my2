@@ -338,6 +338,23 @@ for ax, (col, tcol, title) in zip(axes, [("b", "t_MKT", "Рынок (b)"), ("s",
 fig.suptitle("Нагрузки на факторы Фамы–Френча (тёмные — значимы на 5%)")
 plt.tight_layout(); plt.savefig(FIG / "04_ff3_betas.png", dpi=150); plt.show()
 
+# %%
+# Версия для слайда: только акции со значимой нагрузкой на размер или стоимость, крупный шрифт
+sig_any = ff3_view[(ff3_view["t_SMB"].abs() > 1.96) | (ff3_view["t_HML"].abs() > 1.96)]
+order = sig_any.sort_values("s").index
+fig, axes = plt.subplots(1, 2, figsize=(9.5, 6.4), sharey=True)
+for ax, (col, tcol, title, c_dark) in zip(axes, [("s", "t_SMB", "Размер (s)", "#2C5A87"),
+                                                 ("h", "t_HML", "Стоимость (h)", "#A9521A")]):
+    vals = sig_any.loc[order, col]
+    sig = sig_any.loc[order, tcol].abs() > 1.96
+    ax.barh(order, vals, color=np.where(sig, c_dark, "#D8D3C8"))
+    ax.axvline(0, color="black", lw=1)
+    ax.set_title(title, fontsize=20)
+    ax.tick_params(labelsize=16)
+    ax.grid(axis="x", alpha=0.3)
+fig.text(0.5, 0.005, "цветные — значимы на 5%, серые — незначимы", ha="center", fontsize=15, color="#44505F")
+plt.tight_layout(rect=(0, 0.04, 1, 1)); plt.savefig(FIG / "04s_ff3_loadings_slide.png", dpi=150); plt.show()
+
 # %% [markdown]
 # **Интерпретация трёхфакторной модели.** Нагрузки экономически осмысленны:
 # * **Размер (s > 0, ведут себя как малые компании):** BSPB, SELG, HEAD, HYDR, VTBR, MOEX, UPRO, X5, FEES, RENI.
@@ -499,6 +516,27 @@ ax.set_xlabel("% годовых"); ax.set_title("Премии за риск по
 ax.legend(loc="lower right")
 plt.tight_layout(); plt.savefig(FIG / "06_premia.png", dpi=150); plt.show()
 
+# %%
+# Версия для слайда: 6 малых бумаг и 6 голубых фишек, крупный шрифт
+KEY = ["HEAD", "SELG", "BSPB", "OZON", "RENI", "X5", "LKOH", "NVTK", "SBER", "TATN", "ROSN", "GAZP"]
+p = prem.loc[KEY[::-1]]
+fig, ax = plt.subplots(figsize=(8.6, 7.0))
+y = np.arange(len(p))
+ax.barh(y + 0.2, p["Премия CAPM"], height=0.4, color="#2C5A87", label="CAPM")
+ax.barh(y - 0.2, p["Премия ФФ"], height=0.4, color="#E08A3C", label="Фама–Френч")
+ax.scatter(p["Факт. избыт. доходность"], y, color="black", marker="|", s=400, linewidths=3,
+           label="Факт. избыт. доходность")
+ax.axhline(5.5, color="#6B7684", ls="--", lw=1)
+ax.text(36, 11.4, "малые", ha="right", va="top", fontsize=16, color="#6B7684")
+ax.text(36, 5.3, "крупные", ha="right", va="top", fontsize=16, color="#6B7684")
+ax.set_yticks(y); ax.set_yticklabels(p.index)
+ax.axvline(0, color="black", lw=1)
+ax.tick_params(labelsize=16)
+ax.set_xlabel("% годовых", fontsize=16)
+ax.grid(axis="x", alpha=0.3)
+ax.legend(loc="lower right", fontsize=13)
+plt.tight_layout(); plt.savefig(FIG / "06s_premia_slide.png", dpi=150); plt.show()
+
 # %% [markdown]
 # **Сравнение премий за риск.**
 # * Для **крупных компаний** трёхфакторная премия равна или ниже CAPM: от +0,3 п.п. у LKOH до −2–3 п.п. у SBER, ROSN, TATN
@@ -511,6 +549,87 @@ plt.tight_layout(); plt.savefig(FIG / "06_premia.png", dpi=150); plt.show()
 #   ниже обеих оценок — их отставание факторы не объясняют.
 # * **Оговорка:** премия SMB (~18% годовых) сильно зависит от одного 2023 г. Использовать её как прогноз на будущее
 #   рискованно — для оценки стоимости капитала разумно брать более консервативную премию за размер.
+
+# %% [markdown]
+# ### 7.1. Как меняются выводы при расширении выборки: 15 бумаг ДЗ1 → 35
+#
+# Сначала оцениваем обе модели только на 15 акциях из ДЗ1, затем — на всей выборке из 35 бумаг
+# и смотрим, какие выводы сохраняются, а какие появляются только на широкой выборке.
+# Факторы, период и методика те же; GRS — на бумагах с полной историей внутри каждой выборки.
+
+# %%
+def sample_summary(cols: list) -> dict:
+    """Сводка CAPM и Фамы–Френча на подвыборке акций."""
+    c, f = capm.loc[cols], ff3.loc[cols]
+    fl = [t for t in full if t in cols]
+    g_c, g_f = grs_test(EXR[fl], F[["MKT"]]), grs_test(EXR[fl], F[["MKT", "SMB", "HML"]])
+    fm_f = fama_macbeth(EXR[cols], f[["MKT", "SMB", "HML"]].astype(float))
+    return {
+        "Акций": len(cols),
+        "Диапазон β CAPM": f"{c['MKT'].min():.2f}–{c['MKT'].max():.2f}",
+        "Средний R² CAPM": c["R2"].mean(),
+        "Средний R² ФФ": f["R2"].mean(),
+        "Средний скорр. R² CAPM": c["R2_adj"].mean(),
+        "Средний скорр. R² ФФ": f["R2_adj"].mean(),
+        "Средняя |α| CAPM, % год.": c["alpha_%год"].abs().mean(),
+        "Средняя |α| ФФ, % год.": f["alpha_%год"].abs().mean(),
+        "Значимых α CAPM": int((c["t_alpha"].abs() > 1.96).sum()),
+        "Значимых α ФФ": int((f["t_alpha"].abs() > 1.96).sum()),
+        "Значимых нагрузок SMB (+/−)": f"{(f['t_SMB'] > 1.96).sum()} / {(f['t_SMB'] < -1.96).sum()}",
+        "Значимых нагрузок HML (+/−)": f"{(f['t_HML'] > 1.96).sum()} / {(f['t_HML'] < -1.96).sum()}",
+        "GRS: акций с полной историей": len(fl),
+        "GRS p-value CAPM": g_c["p-value"],
+        "GRS p-value ФФ": g_f["p-value"],
+        "Фама–Макбет λ SMB, % год. (t)": f"{fm_f.loc['SMB', 'λ, % год.']:.1f} ({fm_f.loc['SMB', 't-стат.']:.2f})",
+        "Фама–Макбет λ HML, % год. (t)": f"{fm_f.loc['HML', 'λ, % год.']:.1f} ({fm_f.loc['HML', 't-стат.']:.2f})",
+        "Премия ФФ выше CAPM, акций": f"{(prem.loc[cols, 'Разница ФФ − CAPM'] > 0).sum()} из {len(cols)}",
+    }
+
+NEW20 = [t for t in ff3.index if t not in HW1]
+hw1_vs_all = pd.DataFrame({"15 бумаг ДЗ1": sample_summary(HW1),
+                           "20 новых бумаг": sample_summary(NEW20),
+                           "Все 35": sample_summary(list(ff3.index))})
+hw1_vs_all
+
+# %%
+# Чем отличается состав выборок: отрасли
+pd.DataFrame({"ДЗ1": pd.Series(SECTORS)[HW1].value_counts(),
+              "Все 35": pd.Series(SECTORS).value_counts()}).fillna(0).astype(int)
+
+# %% [markdown]
+# **Что меняется при расширении выборки.**
+# * **Главный вывод сохраняется:** в обеих выборках трёхфакторная модель лучше CAPM — R² растёт на 0,04–0,05,
+#   средняя |α| падает примерно на 1,5–1,7 п.п. годовых.
+# * **GRS-тест меняет вывод.** На 15 бумагах ДЗ1 CAPM отвергается (p = 0,035), а Фама–Френч — нет (p = 0,096):
+#   можно было бы решить, что трёх факторов достаточно. На 35 бумагах отвергаются обе модели (p = 0,015 и 0,037).
+#   Широкая выборка — более мощный тест: в неё вошли VTBR и HEAD с крупными альфами, которые факторы не объясняют.
+# * **Премии за риск: картина становится двусторонней.** ДЗ1 — в основном второй эшелон, поэтому премия ФФ выше
+#   CAPM у 10 бумаг из 15. Только с голубыми фишками (SBER, GAZP, TATN, NVTK) видно, что для крупных компаний
+#   ФФ даёт премию ниже CAPM. Рекомендация «для крупных бумаг хватает CAPM» опирается на расширенную выборку.
+# * **Фактор стоимости проявляется только на 35 бумагах.** В ДЗ1 нет «акций роста» из IT и e-commerce, поэтому
+#   значимых нагрузок на HML 5, а на 35 бумагах — 12 (HEAD и OZON дают отрицательный полюс). Диапазон β
+#   расширяется с 0,55–1,45 до 0,55–1,66.
+# * На 15 бумагах Фама–Макбет даёт премию за размер почти значимой (t ≈ 1,8), на 35 — незначимой: оценка цены риска
+#   на малой выборке неустойчива.
+
+# %%
+# График: R² и средняя |α| в двух выборках
+fig, axes = plt.subplots(1, 2, figsize=(11, 5.2))
+labels, xs = ["15 бумаг ДЗ1", "Все 35"], np.arange(2)
+for ax, (rc, rf, title) in zip(axes, [("Средний R² CAPM", "Средний R² ФФ", "Средний R²"),
+                                      ("Средняя |α| CAPM, % год.", "Средняя |α| ФФ, % год.",
+                                       "Средняя |α|, % годовых")]):
+    vc = hw1_vs_all.loc[rc, labels].astype(float).values
+    vf = hw1_vs_all.loc[rf, labels].astype(float).values
+    ax.bar(xs - 0.2, vc, width=0.4, color="#2C5A87", label="CAPM")
+    ax.bar(xs + 0.2, vf, width=0.4, color="#E08A3C", label="Фама–Френч")
+    for x, v in zip(np.r_[xs - 0.2, xs + 0.2], np.r_[vc, vf]):
+        ax.text(x, v, f"{v:.2f}".replace(".", ","), ha="center", va="bottom", fontsize=15)
+    ax.set_xticks(xs); ax.set_xticklabels(labels, fontsize=16)
+    ax.set_title(title, fontsize=18); ax.tick_params(axis="y", labelsize=14)
+    ax.set_ylim(0, max(vc.max(), vf.max()) * 1.2)
+axes[0].legend(fontsize=14, loc="lower right")
+plt.tight_layout(); plt.savefig(FIG / "07_hw1_vs_all.png", dpi=150); plt.show()
 
 # %% [markdown]
 # ## 8. Проверка устойчивости
@@ -638,6 +757,7 @@ with pd.ExcelWriter(RES / "hw2_results.xlsx") as xw:
     compare.to_excel(xw, sheet_name="Сравнение моделей")
     fm.to_excel(xw, sheet_name="Фама-Макбет")
     prem.to_excel(xw, sheet_name="Премии за риск")
+    hw1_vs_all.to_excel(xw, sheet_name="ДЗ1 (15) vs 35")
     robust.to_excel(xw, sheet_name="Устойчивость")
     ext_tab.to_excel(xw, sheet_name="Доп. факторы")
     summary_rf.to_excel(xw, sheet_name="Безрисковая ставка")
