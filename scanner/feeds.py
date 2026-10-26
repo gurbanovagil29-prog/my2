@@ -120,7 +120,7 @@ class TelegramWebFetcher:
             lines = [clean(line) for line in _BR.split(text_m.group(1))]
             lines = [line for line in lines if line]
             title = next((t for t in map(self._headline, lines) if t), "")
-            if not title:
+            if not title or " pinned «" in lines[0]:  # служебное «закрепил сообщение» — не новость
                 continue
             rest = " ".join(lines)  # весь текст, вместе с хэштегами — по ним тоже считаются баллы
             username, post_id = m.group(1), m.group(2)

@@ -82,6 +82,10 @@ telegram_channels:
   - {name: tass_agency,    category: russia,  weight: 1}
   - {name: interfaxonline, category: russia,  weight: 1}
   - {name: rian_ru,        category: russia,  weight: 1}
+  - {name: reyz_news,      category: markets, weight: 1}   # агрегатор срочных лент (Reuters, Интерфакс...)
+  - {name: selfinvestor,   category: markets, weight: 0}   # Сам ты инвестор!
+  - {name: antonchehovanalitk, category: markets, weight: 0}  # Аналитика от Чехова
+  - {name: mindnews,       category: world,   weight: 0}   # Mind News (Украина)
 
 # Группы ключевых слов: каждое найденное слово в заголовке даёт weight баллов,
 # найденное только в тексте — половину.
