@@ -1,0 +1,139 @@
+# Настройки сканера новостей.
+# Ключевые слова — регулярные выражения, сопоставляются с НАЧАЛА слова без учёта регистра.
+# Поэтому достаточно писать основу: "санкци" поймает "санкции", "санкций", "санкционный".
+# Точное слово: 'ЦБ\b'. Фразы: 'ключев\w* ставк'.
+
+poll_interval: 30          # как часто опрашивать ленты, сек
+max_age_minutes: 120       # новости старше не присылаем (защита от старья после рестарта)
+db_path: scanner.db       # в Docker: data/scanner.db
+
+thresholds:
+  send: 6                  # минимум баллов, чтобы прислать новость
+  urgent: 10               # с этого балла новость помечается 🔴
+
+# Если одну историю за короткое время публикуют несколько разных источников,
+# она важна, даже если ключевых слов мало.
+corroboration:
+  min_sources: 3
+  min_score: 2             # но хоть какое-то отношение к нашим темам быть должно
+  window_hours: 6
+  similarity: 0.5          # 0..1, насколько похожи заголовки, чтобы считаться одной историей
+
+categories:
+  russia:  "🇷🇺 Россия"
+  markets: "📈 Рынки"
+  world:   "🌍 Мир"
+  cbank:   "🏦 ЦБ"
+  crypto:  "₿ Крипта"
+
+# weight — базовые баллы источника (доверие/скорость), прибавляются к баллам ключевых слов.
+sources:
+  # --- Россия ---
+  - {name: ТАСС,        url: "https://tass.ru/rss/v2.xml",                             category: russia,  weight: 1}
+  - {name: Интерфакс,   url: "https://www.interfax.ru/rss",                            category: russia,  weight: 1}
+  - {name: РИА,         url: "https://ria.ru/export/rss2/archive/index.xml",          category: russia,  weight: 1}
+  - {name: РБК,         url: "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",     category: russia,  weight: 1}
+  - {name: Коммерсант,  url: "https://www.kommersant.ru/RSS/news.xml",                category: russia,  weight: 1}
+  - {name: Ведомости,   url: "https://www.vedomosti.ru/rss/news",                     category: russia,  weight: 1}
+  - {name: Meduza,      url: "https://meduza.io/rss/all",                             category: russia,  weight: 1}
+  # --- Рынки ---
+  - {name: Финам,       url: "https://www.finam.ru/analysis/conews/rsspoint/",        category: markets, weight: 1}
+  - {name: Smart-lab,   url: "https://smart-lab.ru/news/rss/",                        category: markets, weight: 1}
+  - {name: Investing RU, url: "https://ru.investing.com/rss/news.rss",                category: markets, weight: 1}
+  - {name: Investing,   url: "https://www.investing.com/rss/news.rss",                category: markets, weight: 1}
+  - {name: MarketWatch, url: "https://feeds.content.dowjones.io/public/rss/mw_topstories", category: markets, weight: 1}
+  # --- Центробанки и регуляторы: редкие, но важные публикации ---
+  - {name: ЦБ РФ,       url: "https://www.cbr.ru/rss/eventrss",                       category: cbank,   weight: 2}
+  - {name: ФРС,         url: "https://www.federalreserve.gov/feeds/press_all.xml",    category: cbank,   weight: 2}
+  - {name: ЕЦБ,         url: "https://www.ecb.europa.eu/rss/press.html",              category: cbank,   weight: 2}
+  - {name: SEC,         url: "https://www.sec.gov/news/pressreleases.rss",            category: cbank,   weight: 0}
+  # --- Мир ---
+  - {name: BBC,         url: "https://feeds.bbci.co.uk/news/world/rss.xml",           category: world,   weight: 1}
+  - {name: FT,          url: "https://www.ft.com/rss/home",                           category: world,   weight: 1}
+  - {name: NYT,         url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", category: world,  weight: 1}
+  - {name: Guardian,    url: "https://www.theguardian.com/world/rss",                 category: world,   weight: 0}
+  - {name: Al Jazeera,  url: "https://www.aljazeera.com/xml/rss/all.xml",             category: world,   weight: 0}
+  # --- Крипта (только крупное, см. блок crypto ниже) ---
+  - {name: CoinDesk,    url: "https://www.coindesk.com/arc/outboundfeeds/rss/",       category: crypto,  weight: 0}
+  - {name: Cointelegraph, url: "https://cointelegraph.com/rss",                       category: crypto,  weight: 0}
+  - {name: The Block,   url: "https://www.theblock.co/rss.xml",                       category: crypto,  weight: 0}
+
+# Telegram-каналы обычно быстрее сайтов. Работает, только если заданы TG_API_ID/TG_API_HASH
+# и установлен telethon (см. README). Имена каналов проверьте сами перед использованием.
+telegram_channels:
+  category: russia
+  weight: 1
+  channels:
+    - markettwits
+    - rbc_news
+    - tass_agency
+    - interfaxonline
+
+# Группы ключевых слов: каждое найденное слово в заголовке даёт weight баллов,
+# найденное только в тексте — половину.
+# Внутри одной группы полный вес даёт только первое слово, остальные — по +1 балла.
+keywords:
+  urgent:
+    weight: 6
+    keywords: ['срочн', 'молни', 'экстренн', 'breaking', 'just in']
+
+  russia_politics:
+    weight: 3
+    keywords: ['путин', 'кремл', 'пескова?\b', 'лавров', 'мишустин', 'госдум', 'совфед', 'указ\b', 'подписал\w* указ',
+               'мобилизац', 'санкци', 'перегово', 'перемири', 'ядерн', 'нато\b', 'зеленск',
+               'трамп', 'уиткофф', 'обмен пленн', 'военное положени']
+
+  russia_economy:
+    weight: 3
+    keywords: ['ключев\w* ставк', 'ЦБ\b', 'банк\w* росси', 'набиуллин', 'инфляц', 'курс\w* рубл',
+               'рубл\w* (укрепил|ослаб|обвал)', 'доллар', 'юан', 'мосбирж', 'индекс\w* мосбирж', 'imoex',
+               'дивиденд', 'байбэк', 'обратн\w* выкуп', 'ipo\b', 'spo\b', 'делистинг', 'мсфо',
+               'офз', 'дефицит\w* бюджет', 'ндс', 'налог\w* (повыш|реформ)', 'минфин',
+               'сбер', 'газпром', 'лукойл', 'роснефт', 'новатэк', 'норникел', 'втб', 'яндекс',
+               'татнефт', 'полюс', 'т-технолог', 'x5', 'магнит', 'алрос', 'северстал', 'русал']
+
+  world_markets:
+    weight: 3
+    keywords: ['фрс', 'fed\b', 'federal reserve', 'пауэлл', 'powell', 'ецб', 'ecb\b', 'лагард',
+               'rate (cut|hike)', 'interest rate', 'процентн\w* ставк', 'cpi\b', 'inflation',
+               'payrolls', 'recession', 'рецесс', 's&p 500', 'nasdaq', 'dow jones', 'treasury',
+               'цен\w* на нефт', 'нефт\w* (подорож|подешев|дорож|дешев)', 'oil price', 'brent', 'wti\b', 'opec', 'опек', 'золот', 'gold\b', 'tariff', 'пошлин',
+               'дефолт', 'default',
+               'nvidia', 'apple\b', 'tesla', 'microsoft', 'earnings', 'ipo\b']
+
+  world_politics:
+    weight: 3
+    keywords: ['войн', 'war\b', 'ceasefire', 'invasion', 'вторжен', 'ракетн\w* удар', 'missile',
+               'nuclear', 'переворот', 'coup\b', 'покушен', 'assassinat', 'impeach', 'импичмент',
+               'отставк', 'resign', 'тайван', 'taiwan', 'иран', 'iran\b', 'израил', 'israel',
+               'китай', 'china', 'си цзиньпин', 'xi jinping', 'sanction', 'nato\b', 'trump',
+               'землетряс', 'earthquake', 'пандеми', 'pandemic', 'теракт', 'terror']
+
+  crypto_major:
+    weight: 3
+    keywords: ['bitcoin', 'биткоин', 'btc\b', 'ethereum', 'эфириум', 'eth\b', 'etf\b', 'sec\b',
+               'stablecoin', 'стейблкоин', 'tether', 'binance', 'coinbase', 'blackrock',
+               'saylor', 'halving', 'халвинг', 'цифров\w* рубл', 'cbdc', 'майнинг', 'криптовалют']
+
+  # Действия и события. Сами по себе ничего не дают (boost), но усиливают новость по теме:
+  # "ЦБ" — 3 балла, "ЦБ повысил ставку" — уже 6+.
+  actions:
+    weight: 3
+    boost: true
+    keywords: ['повыс', 'пониз', 'снизил', 'сохранил', 'ввел', 'ввёл', 'введ', 'отмен', 'запрет',
+               'одобр', 'подписал', 'утвердил', 'обвал', 'рухнул', 'взлетел', 'рекорд', 'взлом',
+               'raise', 'hike', 'cut\b', 'cuts\b', 'approv', 'ban\b', 'bans\b', 'impose', 'crash',
+               'plunge', 'soar', 'surge', 'record', 'all-time high', 'hack', 'exploit', 'collapse']
+
+# Новость с этими словами отбрасывается сразу (шум).
+blocklist: ['футбол', 'хоккей', 'теннис', 'матч', 'тренер', 'чемпионат', 'олимпи', 'актрис', 'актер',
+            'певиц', 'певец', 'шоу\b', 'сериал', 'гороскоп', 'рецепт', 'погод', 'football', 'soccer',
+            'tennis', 'nba\b', 'nfl\b', 'celebrity', 'recipe', 'horoscope', 'condo', 'oscar']
+
+crypto:
+  # Из крипто-лент берём только новости, где упомянуто хоть что-то из этого списка...
+  required: ['bitcoin', 'биткоин', 'btc\b', 'ethereum', 'eth\b', 'etf\b', 'sec\b', 'stablecoin',
+             'стейблкоин', 'blackrock', 'fed\b', 'фрс', 'regulat', 'регулир', 'congress', 'law\b']
+  # ...и выкидываем мелкую крипту из любых лент.
+  blocklist: ['memecoin', 'мемкоин', 'airdrop', 'аирдроп', 'presale', 'пресейл', 'ico\b', 'nft',
+              'token unlock', 'pump\.fun', 'testnet', 'pepe', 'shib', 'altcoin', 'альткоин']
