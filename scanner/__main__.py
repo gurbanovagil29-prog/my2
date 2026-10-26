@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 
-from .feeds import FeedFetcher
+from .feeds import FeedFetcher, TelegramWebFetcher
 from .models import Item
 from .notify import ConsoleNotifier, TelegramNotifier, format_message
 from .routes import Route
@@ -49,7 +49,10 @@ class Scanner:
         db_path = os.getenv("SCANNER_DB") or cfg.get("db_path", "scanner.db")
         self.store = Store(":memory:" if once else db_path,
                            story_cfg["window_hours"], story_cfg["similarity"])
-        self.fetchers = [FeedFetcher(s) for s in cfg["sources"]]
+        self.fetchers = [FeedFetcher(s) for s in cfg["sources"]] + [
+            TelegramWebFetcher(c["name"], c.get("category", "russia"), c.get("weight", 0))
+            for c in cfg.get("telegram_channels", [])
+        ]
         self.translate = Translator() if cfg.get("translate", True) else None
         self.sent_before = sum(len(s.sent_to) for s in self.store.stories)
         self.routes = [Route.from_config(key, c) for key, c in cfg["channels"].items()]
@@ -98,12 +101,7 @@ class Scanner:
                 await asyncio.sleep(self.cfg.get("poll_interval", 30))
 
     async def run(self) -> None:
-        tasks = [self.poll_feeds()]
-        api_id, api_hash = os.getenv("TG_API_ID"), os.getenv("TG_API_HASH")
-        if api_id and api_hash and not self.single_pass and self.cfg.get("telegram_channels"):
-            from .telegram_channels import listen
-            tasks.append(listen(int(api_id), api_hash, self.cfg["telegram_channels"], self.process))
-        await asyncio.gather(*tasks)
+        await self.poll_feeds()
 
 
 def main() -> None:

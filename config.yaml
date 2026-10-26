@@ -70,16 +70,18 @@ sources:
   - {name: Cointelegraph, url: "https://cointelegraph.com/rss",                       category: crypto,  weight: 0}
   - {name: The Block,   url: "https://www.theblock.co/rss.xml",                       category: crypto,  weight: 0}
 
-# Telegram-каналы обычно быстрее сайтов. Работает, только если заданы TG_API_ID/TG_API_HASH
-# и установлен telethon (см. README). Имена каналов проверьте сами перед использованием.
+# Публичные Telegram-каналы: читаются через веб-версию t.me/s/<канал>, без входа в аккаунт.
+# Они обычно быстрее сайтов. Добавить канал: строка с его именем (из ссылки t.me/имя).
 telegram_channels:
-  category: russia
-  weight: 1
-  channels:
-    - markettwits
-    - rbc_news
-    - tass_agency
-    - interfaxonline
+  - {name: markettwits,    category: markets, weight: 1}   # MarketTwits — рынки, очень быстро
+  - {name: cbrstocks,      category: markets, weight: 1}   # Банки, деньги, два офшора... рынки
+  - {name: if_market_news, category: markets, weight: 1}   # Интерфакс — рынки
+  - {name: banksta,        category: markets, weight: 0}
+  - {name: bbbreaking,     category: russia,  weight: 1}   # Раньше всех. Ну почти
+  - {name: rbc_news,       category: russia,  weight: 1}
+  - {name: tass_agency,    category: russia,  weight: 1}
+  - {name: interfaxonline, category: russia,  weight: 1}
+  - {name: rian_ru,        category: russia,  weight: 1}
 
 # Группы ключевых слов: каждое найденное слово в заголовке даёт weight баллов,
 # найденное только в тексте — половину.
@@ -153,7 +155,10 @@ keywords:
 # Новость с этими словами отбрасывается сразу (шум).
 blocklist: ['футбол', 'хоккей', 'теннис', 'матч', 'тренер', 'чемпионат', 'олимпи', 'актрис', 'актер',
             'певиц', 'певец', 'шоу\b', 'сериал', 'гороскоп', 'рецепт', 'погод', 'football', 'soccer',
-            'tennis', 'nba\b', 'nfl\b', 'celebrity', 'recipe', 'horoscope', 'condo', 'oscar']
+            'tennis', 'nba\b', 'nfl\b', 'celebrity', 'recipe', 'horoscope', 'condo', 'oscar',
+            # дайджесты и сводки: в них много ключевых слов сразу, но это не новость
+            'главн\w* (новост|событ)', 'кратко', 'дайджест', 'итоги (дня|недели)', 'что произошло',
+            'обзор (рынк|новост)', 'утренн\w* обзор', 'вечерн\w* обзор', 'morning briefing', 'what we know']
 
 crypto:
   # Из крипто-лент берём только новости, где упомянуто хоть что-то из этого списка...

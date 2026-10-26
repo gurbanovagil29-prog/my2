@@ -1,5 +1,3 @@
 feedparser>=6.0
 requests>=2.31
 PyYAML>=6.0
-# Опционально, для чтения Telegram-каналов (см. README):
-# telethon>=1.36
