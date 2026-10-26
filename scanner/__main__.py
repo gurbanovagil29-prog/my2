@@ -22,6 +22,7 @@ from .notify import ConsoleNotifier, TelegramNotifier, format_message
 from .routes import Route
 from .scoring import Scorer
 from .store import Store
+from .translate import Translator
 
 log = logging.getLogger("scanner")
 
@@ -49,6 +50,7 @@ class Scanner:
         self.store = Store(":memory:" if once else db_path,
                            story_cfg["window_hours"], story_cfg["similarity"])
         self.fetchers = [FeedFetcher(s) for s in cfg["sources"]]
+        self.translate = Translator() if cfg.get("translate", True) else None
         self.sent_before = sum(len(s.sent_to) for s in self.store.stories)
         self.routes = [Route.from_config(key, c) for key, c in cfg["channels"].items()]
         self.max_age = timedelta(hours=hours) if hours else timedelta(minutes=cfg.get("max_age_minutes", 120))
@@ -74,7 +76,8 @@ class Scanner:
             if reason is None:
                 continue
             self.store.mark_sent(story, route.key)
-            text = format_message(story.best, route.mark, label, reason, round(story.score, 1), story.hits)
+            title = await asyncio.to_thread(self.translate, story.best.title) if self.translate else None
+            text = format_message(story.best, route.mark, label, reason, round(story.score, 1), story.hits, title)
             await asyncio.to_thread(self.notifier.send, route, text)
 
     async def poll_feeds(self) -> None:

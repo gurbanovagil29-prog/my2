@@ -49,3 +49,16 @@ def test_urgent_burst():
     story.source_times.update({"Интерфакс": 300, "Коммерсант": 600})
     assert urgent.reason(story, now=600)            # 4 СМИ за 10 минут — срочно
     assert urgent.reason(story, now=3 * 3600) is None  # но спустя 3 часа уже не срочно
+
+
+def test_translation_fallbacks(monkeypatch):
+    from scanner import translate
+
+    assert not translate.needs_translation("ЦБ повысил ставку")
+    assert translate.needs_translation("Fed cuts rates")
+    t = translate.Translator()
+    monkeypatch.setattr(translate, "_google", lambda text, s: None)
+    monkeypatch.setattr(translate, "_mymemory", lambda text, s: "ФРС снизила ставки")
+    assert t("Fed cuts rates") == "ФРС снизила ставки"
+    monkeypatch.setattr(translate, "_mymemory", lambda text, s: "MYMEMORY WARNING")  # не перевод
+    assert t("Oil jumps") == "Oil jumps"

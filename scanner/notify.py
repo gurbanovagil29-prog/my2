@@ -13,13 +13,14 @@ MSK = timezone(timedelta(hours=3))
 
 
 def format_message(item: Item, mark: str, category_label: str, reason: str,
-                   score: float, hits: list[str]) -> str:
+                   score: float, hits: list[str], title: str | None = None) -> str:
+    """title — заголовок для показа (например, переведённый); по умолчанию — оригинальный."""
     when = item.published.astimezone(MSK).strftime("%d.%m %H:%M")
     meta = [category_label, html.escape(item.source), when]
     if reason:
         meta.append(reason)
     words = ", ".join(dict.fromkeys(hits))  # без повторов, в исходном порядке
-    text = f"{mark} <b>{html.escape(item.title)}</b>\n<i>{' · '.join(meta)}</i>"
+    text = f"{mark} <b>{html.escape(title or item.title)}</b>\n<i>{' · '.join(meta)}</i>"
     text += f"\n⭐ {score:g}" + (f" · {html.escape(words)}" if words else "")
     if item.link:
         text += f"\n{html.escape(item.link)}"
