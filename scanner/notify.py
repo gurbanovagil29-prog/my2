@@ -2,19 +2,25 @@
 import html
 import logging
 import time
+from datetime import timedelta, timezone
 
 import requests
 
 from .models import Item
 
 log = logging.getLogger(__name__)
+MSK = timezone(timedelta(hours=3))
 
 
-def format_message(item: Item, mark: str, category_label: str, reason: str) -> str:
-    meta = [category_label, html.escape(item.source)]
+def format_message(item: Item, mark: str, category_label: str, reason: str,
+                   score: float, hits: list[str]) -> str:
+    when = item.published.astimezone(MSK).strftime("%d.%m %H:%M")
+    meta = [category_label, html.escape(item.source), when]
     if reason:
         meta.append(reason)
+    words = ", ".join(dict.fromkeys(hits))  # без повторов, в исходном порядке
     text = f"{mark} <b>{html.escape(item.title)}</b>\n<i>{' · '.join(meta)}</i>"
+    text += f"\n⭐ {score:g}" + (f" · {html.escape(words)}" if words else "")
     if item.link:
         text += f"\n{html.escape(item.link)}"
     return text
@@ -32,11 +38,19 @@ class ConsoleNotifier:
 
 
 class TelegramNotifier:
+    # Telegram пускает в группу не больше ~20 сообщений в минуту.
+    MIN_INTERVAL = 3.0
+
     def __init__(self, token: str):
         self.url = f"https://api.telegram.org/bot{token}/sendMessage"
         self.session = requests.Session()
+        self.last_sent: dict[str, float] = {}
 
     def send(self, route, text: str) -> None:
+        wait = self.last_sent.get(route.chat, 0) + self.MIN_INTERVAL - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        self.last_sent[route.chat] = time.time()
         payload = {
             "chat_id": route.chat,
             "text": text,

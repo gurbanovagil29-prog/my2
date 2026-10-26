@@ -44,14 +44,14 @@ class Scorer:
         for weight, is_boost, patterns in self.groups:
             group_value = 0.0
             for kw, rx in patterns:
-                if rx.search(title):
+                if m := rx.search(title):
                     gain = weight
-                elif rx.search(summary):
+                elif m := rx.search(summary):
                     gain = weight / 2
                 else:
                     continue
                 group_value += gain if not group_value else min(gain, 1)
-                hits.append(kw)
+                hits.append(m.group(0).lower())
             if is_boost:
                 boost += group_value
             else:

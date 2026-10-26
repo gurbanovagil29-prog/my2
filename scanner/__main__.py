@@ -42,7 +42,8 @@ class Scanner:
         self.verbose = verbose
         self.scorer = Scorer(cfg)
         story_cfg = cfg["story"]
-        self.store = Store(":memory:" if once else cfg.get("db_path", "scanner.db"),
+        db_path = os.getenv("SCANNER_DB") or cfg.get("db_path", "scanner.db")
+        self.store = Store(":memory:" if once else db_path,
                            story_cfg["window_hours"], story_cfg["similarity"])
         self.fetchers = [FeedFetcher(s) for s in cfg["sources"]]
         self.routes = [Route.from_config(key, c) for key, c in cfg["channels"].items()]
@@ -68,31 +69,22 @@ class Scanner:
             reason = route.reason(story, now=item.published.timestamp())
             if reason is None:
                 continue
-            story.sent_to.add(route.key)
-            text = format_message(story.best, route.mark, label, reason)
+            self.store.mark_sent(story, route.key)
+            text = format_message(story.best, route.mark, label, reason, round(story.score, 1), story.hits)
             await asyncio.to_thread(self.notifier.send, route, text)
 
     async def poll_feeds(self) -> None:
         loop = asyncio.get_running_loop()
-        known = self.store.known_sources()
         with ThreadPoolExecutor(max_workers=12) as pool:
             while True:
                 results = await asyncio.gather(*(loop.run_in_executor(pool, f.fetch) for f in self.fetchers))
                 fresh: list[Item] = []
-                for fetcher, items in zip(self.fetchers, results):
-                    name = fetcher.source["name"]
-                    # Новый источник: всё, что в ленте уже есть, запоминаем без отправки,
-                    # иначе при первом запуске прилетит сотня старых новостей.
-                    if not self.once and name not in known:
-                        if items:  # источник мог не ответить — тогда запомним на следующем круге
-                            self.store.mark_seen(items)
-                            known.add(name)
-                            log.info("%s: запомнил %d текущих новостей", name, len(items))
-                        continue
+                for items in results:
                     fresh.extend(items)
                 # Обрабатываем все источники вместе по хронологии, чтобы видеть, кто опубликовал первым.
                 for item in sorted(fresh, key=lambda i: i.published):
                     await self.process(item)
+                self.store.commit()
                 if self.once:
                     return
                 self.store.cleanup()

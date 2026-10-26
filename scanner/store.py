@@ -30,6 +30,7 @@ class Story:
     created: float                                                   # время первой публикации
     source_times: dict[str, float] = field(default_factory=dict)    # источник -> когда он её опубликовал
     sent_to: set[str] = field(default_factory=set)                   # в какие каналы уже отправлена
+    hits: list[str] = field(default_factory=list)                    # найденные слова лучшей новости
 
     @property
     def sources(self) -> set[str]:
@@ -44,13 +45,31 @@ class Store:
     def __init__(self, path: str, window_hours: float, threshold: float):
         self.db = sqlite3.connect(path)
         self.db.execute("CREATE TABLE IF NOT EXISTS seen (uid TEXT PRIMARY KEY, source TEXT, ts REAL)")
+        self.db.execute("CREATE TABLE IF NOT EXISTS sent (route TEXT, title TEXT, ts REAL)")
         self.db.commit()
         self.window = window_hours * 3600
         self.threshold = threshold
         self.stories: list[Story] = []
+        self._load_sent()
 
-    def known_sources(self) -> set[str]:
-        return {row[0] for row in self.db.execute("SELECT DISTINCT source FROM seen")}
+    def _load_sent(self) -> None:
+        """После перезапуска вспоминаем, что уже отправляли, чтобы не повторять те же истории."""
+        rows = self.db.execute("SELECT route, title, ts FROM sent WHERE ts >= ?", (time.time() - self.window,))
+        by_title: dict[str, Story] = {}
+        for route, title, ts in rows:
+            if title not in by_title:
+                item = Item(uid="", source="", category="", title=title, summary="", link="")
+                by_title[title] = Story(titles=[tokens(title)], best=item, score=0, created=ts)
+            by_title[title].sent_to.add(route)
+        self.stories.extend(by_title.values())
+
+    def mark_sent(self, story: Story, route: str) -> None:
+        story.sent_to.add(route)
+        self.db.execute("INSERT INTO sent (route, title, ts) VALUES (?, ?, ?)", (route, story.best.title, story.created))
+        self.db.commit()
+
+    def commit(self) -> None:
+        self.db.commit()
 
     def is_seen(self, item: Item) -> bool:
         return self.db.execute("SELECT 1 FROM seen WHERE uid = ?", (item.uid,)).fetchone() is not None
@@ -61,10 +80,10 @@ class Store:
             "INSERT OR IGNORE INTO seen (uid, source, ts) VALUES (?, ?, ?)",
             [(i.uid, i.source, now) for i in items],
         )
-        self.db.commit()
 
     def cleanup(self, keep_days: int = 14) -> None:
         self.db.execute("DELETE FROM seen WHERE ts < ?", (time.time() - keep_days * 86400,))
+        self.db.execute("DELETE FROM sent WHERE ts < ?", (time.time() - keep_days * 86400,))
         self.db.commit()
         cutoff = time.time() - self.window
         self.stories = [s for s in self.stories if s.created >= cutoff]
@@ -84,12 +103,12 @@ class Store:
         if best_match and best_sim >= self.threshold:
             story = best_match
             if score.value > story.score:
-                story.score, story.best = score.value, item
+                story.score, story.best, story.hits = score.value, item, score.hits
             story.created = min(story.created, published)
             if len(story.titles) < 30:
                 story.titles.append(toks)
         else:
-            story = Story(titles=[toks], best=item, score=score.value, created=published)
+            story = Story(titles=[toks], best=item, score=score.value, created=published, hits=score.hits)
             self.stories.append(story)
         story.source_times[item.source] = min(story.source_times.get(item.source, published), published)
         return story
