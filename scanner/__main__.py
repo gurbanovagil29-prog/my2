@@ -4,6 +4,7 @@
   python -m scanner --dry-run    # то же, но только в консоль
   python -m scanner --once -v    # один проход по свежим новостям с баллами — для настройки config.yaml
   python -m scanner --once --hours 6   # сколько новостей ушло бы в каждый канал за последние 6 часов
+  python -m scanner --now        # один проход: прислать в Telegram всё новое с прошлого запуска и выйти
 """
 import argparse
 import asyncio
@@ -35,10 +36,12 @@ def load_env(path: Path) -> None:
 
 
 class Scanner:
-    def __init__(self, cfg: dict, notifier, once: bool = False, verbose: bool = False, hours: float | None = None):
+    def __init__(self, cfg: dict, notifier, once: bool = False, verbose: bool = False, hours: float | None = None,
+                 single_pass: bool = False):
         self.cfg = cfg
         self.notifier = notifier
         self.once = once
+        self.single_pass = once or single_pass
         self.verbose = verbose
         self.scorer = Scorer(cfg)
         story_cfg = cfg["story"]
@@ -46,6 +49,7 @@ class Scanner:
         self.store = Store(":memory:" if once else db_path,
                            story_cfg["window_hours"], story_cfg["similarity"])
         self.fetchers = [FeedFetcher(s) for s in cfg["sources"]]
+        self.sent_before = sum(len(s.sent_to) for s in self.store.stories)
         self.routes = [Route.from_config(key, c) for key, c in cfg["channels"].items()]
         self.max_age = timedelta(hours=hours) if hours else timedelta(minutes=cfg.get("max_age_minutes", 120))
 
@@ -85,7 +89,7 @@ class Scanner:
                 for item in sorted(fresh, key=lambda i: i.published):
                     await self.process(item)
                 self.store.commit()
-                if self.once:
+                if self.single_pass:
                     return
                 self.store.cleanup()
                 await asyncio.sleep(self.cfg.get("poll_interval", 30))
@@ -93,7 +97,7 @@ class Scanner:
     async def run(self) -> None:
         tasks = [self.poll_feeds()]
         api_id, api_hash = os.getenv("TG_API_ID"), os.getenv("TG_API_HASH")
-        if api_id and api_hash and not self.once and self.cfg.get("telegram_channels"):
+        if api_id and api_hash and not self.single_pass and self.cfg.get("telegram_channels"):
             from .telegram_channels import listen
             tasks.append(listen(int(api_id), api_hash, self.cfg["telegram_channels"], self.process))
         await asyncio.gather(*tasks)
@@ -105,6 +109,7 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="печатать в консоль вместо Telegram")
     parser.add_argument("--once", action="store_true", help="один проход по свежим новостям, без базы")
     parser.add_argument("-v", "--verbose", action="store_true", help="показывать баллы всех новостей")
+    parser.add_argument("--now", action="store_true", help="один проход с отправкой в Telegram и выход")
     parser.add_argument("--hours", type=float, help="с --once: за сколько часов брать новости")
     args = parser.parse_args()
 
@@ -121,9 +126,13 @@ def main() -> None:
         notifier = TelegramNotifier(token)
 
     try:
-        asyncio.run(Scanner(cfg, notifier, once=args.once, verbose=args.verbose, hours=args.hours).run())
+        scanner = Scanner(cfg, notifier, once=args.once, verbose=args.verbose, hours=args.hours, single_pass=args.now)
+        asyncio.run(scanner.run())
     except KeyboardInterrupt:
         pass
+    if args.now:
+        sent = sum(len(s.sent_to) for s in scanner.store.stories)
+        print(f"Готово. Новых сообщений отправлено: {sent - scanner.sent_before}")
     if args.once:
         hours = args.hours or cfg.get("max_age_minutes", 120) / 60
         for name, count in notifier.counts.items():
