@@ -13,6 +13,18 @@ story:
   window_hours: 6
   similarity: 0.5          # 0..1, насколько похожи заголовки, чтобы считаться одной историей
 
+# Важность истории по шкале 0–10 (см. scanner/importance.py):
+#   0–3 шум · 4–5 заметная · 6–7 важная · 8–9 резкое событие, пишут многие · 10 историческое, пишут все
+importance:
+  topic_max: 6              # максимум за ключевые слова
+  topic_scale: 7            # сырые баллы 5 → 3.1, 9 → 4.4, 13 → 5.1, 20 → 5.7
+  coverage: [0, 1, 1.5, 2, 2.5, 3]   # бонус за 1, 2, 3, 4, 5, 6+ разных СМИ
+  burst: {sources: 3, minutes: 30, bonus: 0.5}   # и ещё, если 3+ СМИ подхватили за 30 минут
+  event_bonus: 1.5          # историческое событие (группа historic ниже)
+  event_topic_min: 5        # и балл за тему у него не меньше этого
+  single_source_max: 6.5    # одно СМИ, без подтверждения, — не больше
+  top_min_sources: 5        # 10 баллов: историческое событие и столько СМИ
+
 # Каналы-получатели. Одна история может уйти в оба.
 # chat_env — имя переменной окружения с id канала; если она не задана, используется CHAT_ID.
 channels:
@@ -20,15 +32,14 @@ channels:
     name: "📰 Лента"
     chat_env: CHAT_FEED
     mark: "🟡"
-    min_score: 5                                   # всё интересное
-    corroboration: {sources: 2, min_score: 4}      # или о теме пишут хотя бы 2 СМИ
+    min_importance: 3.5                            # всё заметное
 
   urgent:
     name: "⚡ Срочно"
     chat_env: CHAT_URGENT
     mark: "🔴"
-    min_score: 9                                   # сильная новость по ключевым словам
-    burst: {sources: 3, minutes: 30, min_score: 3} # или 3+ разных СМИ написали об этом за 30 минут
+    min_importance: 7                              # важное, подтверждённое несколькими СМИ
+    burst: {sources: 3, minutes: 30, min_importance: 5}  # или 3+ СМИ за 30 минут
     max_delay_minutes: 30                          # срочное, пришедшее позже 30 мин, уже не срочное
 
 categories:
@@ -75,13 +86,13 @@ sources:
 telegram_channels:
   - {name: markettwits,    category: markets, weight: 1}   # MarketTwits — рынки, очень быстро
   - {name: cbrstocks,      category: markets, weight: 1}   # Банки, деньги, два офшора... рынки
-  - {name: if_market_news, category: markets, weight: 1}   # Интерфакс — рынки
+  - {name: if_market_news, category: markets, weight: 1, outlet: Интерфакс}   # Интерфакс — рынки
   - {name: banksta,        category: markets, weight: 0}
   - {name: bbbreaking,     category: russia,  weight: 1}   # Раньше всех. Ну почти
-  - {name: rbc_news,       category: russia,  weight: 1}
-  - {name: tass_agency,    category: russia,  weight: 1}
-  - {name: interfaxonline, category: russia,  weight: 1}
-  - {name: rian_ru,        category: russia,  weight: 1}
+  - {name: rbc_news,       category: russia,  weight: 1, outlet: РБК}
+  - {name: tass_agency,    category: russia,  weight: 1, outlet: ТАСС}
+  - {name: interfaxonline, category: russia,  weight: 1, outlet: Интерфакс}
+  - {name: rian_ru,        category: russia,  weight: 1, outlet: РИА}
   - {name: reyz_news,      category: markets, weight: 1}   # агрегатор срочных лент (Reuters, Интерфакс...)
   - {name: selfinvestor,   category: markets, weight: 0}   # Сам ты инвестор!
   - {name: antonchehovanalitk, category: markets, weight: 0}  # Аналитика от Чехова
@@ -99,7 +110,7 @@ keywords:
     weight: 3
     keywords: ['путин', 'кремл', 'пескова?\b', 'лавров', 'мишустин', 'госдум', 'совфед', 'указ\b', 'подписал\w* указ',
                'мобилизац', 'санкци', 'перегово', 'перемири', 'ядерн', 'нато\b', 'зеленск',
-               'трамп', 'уиткофф', 'обмен пленн', 'военное положени']
+               'трамп', 'уиткофф', 'украин', 'киев', 'обмен пленн', 'военное положени']
 
   russia_economy:
     weight: 3
@@ -132,6 +143,21 @@ keywords:
     keywords: ['bitcoin', 'биткоин', 'btc\b', 'ethereum', 'эфириум', 'eth\b', 'etf\b', 'sec\b',
                'stablecoin', 'стейблкоин', 'tether', 'binance', 'coinbase', 'blackrock',
                'saylor', 'halving', 'халвинг', 'цифров\w* рубл', 'cbdc', 'майнинг', 'криптовалют']
+
+  # Исторические события: баллов не дают, но открывают путь к 9–10 (только по заголовку, список строгий).
+  historic:
+    event: true
+    exclude: ['продл', 'продолж', 'extend', 'не (будет|станет|планир)', 'может', 'могут', 'возможн', 'слух', 'опроверг',
+              'призвал', 'призыв', 'угрож', 'threat', 'could', 'may\b', 'might', 'считает', 'заявил\w* о готовност']
+    keywords: ['объявил\w* войн', 'declares? war', 'военн\w* положени\w* (введ|объяв)', 'введ\w* военн\w* положени',
+               'martial law', 'всеобщ\w* мобилизац', 'ядерн\w* удар', 'nuclear (strike|attack)',
+               'подписал\w* мирн', 'мирн\w* (договор|соглашени)\w* подписа', 'signs? (a )?peace', 'peace (deal|agreement|treaty) signed',
+               'перемири\w* (заключ|вступил|объявл)', 'ceasefire (agreed|takes effect|announced|reached)',
+               'дефолт росси', 'росси\w* (объявил|допустил)\w* дефолт', 'государственн\w* переворот', 'military coup',
+               'скончал\w* (президент|премьер)', '(путин|трамп|си цзиньпин)\w* (скончал|умер|убит)', 'покушени\w* на (путин|трамп|президент)',
+               'экстренн\w* (повышен|снижен)\w* (ключев|ставк)', 'внеочередн\w* заседани\w* (банка россии|цб|совета директоров)',
+               'emergency rate (cut|hike)', 'emergency (fed )?meeting', 'торги\w* (на мосбирже )?(приостановлен|остановлен)',
+               'trading halted', 'circuit breaker', 'обвал\w* рубл', 'отставк\w* (путин|правительств)']
 
   # Резкие события: сами по себе не считаются (boost), но сильно поднимают новость по теме.
   breaking:

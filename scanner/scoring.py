@@ -18,7 +18,8 @@ def _compile_any(patterns: list[str]) -> re.Pattern | None:
 class Scorer:
     def __init__(self, cfg: dict):
         self.groups = [
-            (g["weight"], g.get("boost", False), [(kw, _compile(kw)) for kw in g["keywords"]])
+            (g.get("weight", 0), g.get("boost", False), g.get("event", False),
+             [(kw, _compile(kw)) for kw in g["keywords"]], _compile_any(g.get("exclude", [])))
             for g in cfg.get("keywords", {}).values()
         ]
         self.blocklist = _compile_any(cfg.get("blocklist", []))
@@ -40,8 +41,17 @@ class Scorer:
         # Первое совпадение в группе даёт полный вес, каждое следующее — +1:
         # "Песков" + "Кремль" — это одна тема, а "Трамп" + "Иран" + "ставка" — уже несколько.
         # Группы с boost: true (действия: "повысил", "одобрил") считаются, только если тема уже найдена.
-        value, boost, hits = 0.0, 0.0, []
-        for weight, is_boost, patterns in self.groups:
+        # Группы с event: true (исторические события) баллов не дают, а только ставят отметку.
+        value, boost, hits, event = 0.0, 0.0, [], False
+        for weight, is_boost, is_event, patterns, exclude in self.groups:
+            if exclude and exclude.search(title):  # например, "продление военного положения" — не событие
+                continue
+            if is_event:
+                for _, rx in patterns:
+                    if m := rx.search(title):  # только по заголовку — список строгий
+                        event = True
+                        hits.append(m.group(0).lower())
+                continue
             group_value = 0.0
             for kw, rx in patterns:
                 if m := rx.search(title):
@@ -58,4 +68,4 @@ class Scorer:
                 value += group_value
         if value > 0:
             value += boost + item.source_weight
-        return Score(value, hits)
+        return Score(value, hits, event)

@@ -2,6 +2,7 @@
 import os
 from dataclasses import dataclass
 
+from .importance import importance
 from .store import Story
 
 
@@ -10,10 +11,9 @@ class Route:
     key: str
     name: str
     chat: str
-    min_score: float
+    min_importance: float
     mark: str = ""
-    corroboration: dict | None = None   # {sources, min_score}: история из N разных СМИ
-    burst: dict | None = None           # {sources, minutes, min_score}: N СМИ за M минут — резкая новость
+    burst: dict | None = None           # {sources, minutes, min_importance}: N СМИ за M минут — резкая новость
     max_delay_minutes: float | None = None  # не слать, если история уже "остыла"
 
     @classmethod
@@ -24,25 +24,22 @@ class Route:
             key=key,
             name=cfg.get("name", key),
             chat=chat,
-            min_score=cfg["min_score"],
+            min_importance=cfg["min_importance"],
             mark=cfg.get("mark", ""),
-            corroboration=cfg.get("corroboration"),
             burst=cfg.get("burst"),
             max_delay_minutes=cfg.get("max_delay_minutes"),
         )
 
-    def reason(self, story: Story, now: float) -> str | None:
+    def reason(self, story: Story, now: float, scale: dict) -> str | None:
         """Почему историю надо отправить в этот канал; None — не надо."""
         if self.max_delay_minutes is not None and now - story.created > self.max_delay_minutes * 60:
             return None
-        if story.score >= self.min_score:
-            return f"🔁 {len(story.sources)} источника(ов)" if len(story.sources) > 1 else ""
+        value = importance(story, scale)
         burst = self.burst
-        if burst and story.score >= burst["min_score"]:
+        if burst and value >= burst["min_importance"]:
             n = story.sources_within(burst["minutes"])
             if n >= burst["sources"]:
                 return f"⚡ {n} СМИ за {burst['minutes']} мин"
-        corr = self.corroboration
-        if corr and story.score >= corr["min_score"] and len(story.sources) >= corr["sources"]:
-            return f"🔁 {len(story.sources)} источника(ов)"
+        if value >= self.min_importance:
+            return f"🔁 {len(story.sources)} СМИ" if len(story.sources) > 1 else ""
         return None

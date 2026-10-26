@@ -80,9 +80,9 @@ class TelegramWebFetcher:
     _TEXT = re.compile(r'<div class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>', re.DOTALL)
     _TIME = re.compile(r'<time datetime="([^"]+)"')
 
-    def __init__(self, channel: str, category: str, weight: float):
+    def __init__(self, channel: str, category: str, weight: float, outlet: str = ""):
         self.channel = channel.lstrip("@")
-        self.source = {"name": f"@{self.channel}", "category": category, "weight": weight}
+        self.source = {"name": f"@{self.channel}", "category": category, "weight": weight, "outlet": outlet}
         self.session = requests.Session()
         self.session.headers["User-Agent"] = USER_AGENT
 
@@ -100,6 +100,7 @@ class TelegramWebFetcher:
     @staticmethod
     def _headline(line: str) -> str:
         """Строка без хэштегов, @упоминаний и эмодзи в начале; пусто, если в ней нет текста."""
+        line = re.split(r"\W*\b(?:Подписаться|Подпишись|Мы в)\b", line)[0]  # хвосты вида «🔹 Подписаться / Мы в Максе»
         line = re.sub(r"[#@]\w+", "", line)
         line = re.sub(r"^\W+", "", line).strip()
         if len(re.findall(r"[^\W\d_]{2,}", line)) < 2:  # меньше двух слов — это не заголовок
@@ -133,5 +134,6 @@ class TelegramWebFetcher:
                 link=f"https://t.me/{username}/{post_id}",
                 published=datetime.fromisoformat(time_m.group(1)),
                 source_weight=self.source["weight"],
+                outlet=self.source["outlet"],
             ))
         return items

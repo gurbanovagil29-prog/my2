@@ -17,6 +17,7 @@ from pathlib import Path
 import yaml
 
 from .feeds import FeedFetcher, TelegramWebFetcher
+from .importance import importance
 from .models import Item
 from .notify import ConsoleNotifier, TelegramNotifier, format_message
 from .routes import Route
@@ -50,7 +51,7 @@ class Scanner:
         self.store = Store(":memory:" if once else db_path,
                            story_cfg["window_hours"], story_cfg["similarity"])
         self.fetchers = [FeedFetcher(s) for s in cfg["sources"]] + [
-            TelegramWebFetcher(c["name"], c.get("category", "russia"), c.get("weight", 0))
+            TelegramWebFetcher(c["name"], c.get("category", "russia"), c.get("weight", 0), c.get("outlet", ""))
             for c in cfg.get("telegram_channels", [])
         ]
         self.translate = Translator() if cfg.get("translate", True) else None
@@ -75,12 +76,12 @@ class Scanner:
             if route.key in story.sent_to:
                 continue
             # Время "сейчас" берём из новости, чтобы --once на старых новостях вёл себя как вживую.
-            reason = route.reason(story, now=item.published.timestamp())
+            reason = route.reason(story, now=item.published.timestamp(), scale=self.cfg["importance"])
             if reason is None:
                 continue
             self.store.mark_sent(story, route.key)
             title = await asyncio.to_thread(self.translate, story.best.title) if self.translate else None
-            text = format_message(story.best, route.mark, label, reason, round(story.score, 1), story.hits, title)
+            text = format_message(story.best, route.mark, label, reason, importance(story, self.cfg["importance"]), story.hits, title)
             await asyncio.to_thread(self.notifier.send, route, text)
 
     async def poll_feeds(self) -> None:

@@ -21,7 +21,7 @@ def format_message(item: Item, mark: str, category_label: str, reason: str,
         meta.append(reason)
     words = ", ".join(dict.fromkeys(hits))  # без повторов, в исходном порядке
     text = f"{mark} <b>{html.escape(title or item.title)}</b>\n<i>{' · '.join(meta)}</i>"
-    text += f"\n⭐ {score:g}" + (f" · {html.escape(words)}" if words else "")
+    text += f"\n⭐ {score:g}/10" + (f" · {html.escape(words)}" if words else "")
     if item.link:
         text += f"\n{html.escape(item.link)}"
     return text

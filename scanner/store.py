@@ -31,6 +31,7 @@ class Story:
     source_times: dict[str, float] = field(default_factory=dict)    # источник -> когда он её опубликовал
     sent_to: set[str] = field(default_factory=set)                   # в какие каналы уже отправлена
     hits: list[str] = field(default_factory=list)                    # найденные слова лучшей новости
+    event: bool = False                                              # историческое событие
 
     @property
     def sources(self) -> set[str]:
@@ -105,10 +106,12 @@ class Store:
             if score.value > story.score:
                 story.score, story.best, story.hits = score.value, item, score.hits
             story.created = min(story.created, published)
+            story.event = story.event or score.event
             if len(story.titles) < 30:
                 story.titles.append(toks)
         else:
-            story = Story(titles=[toks], best=item, score=score.value, created=published, hits=score.hits)
+            story = Story(titles=[toks], best=item, score=score.value, created=published, hits=score.hits,
+                          event=score.event)
             self.stories.append(story)
-        story.source_times[item.source] = min(story.source_times.get(item.source, published), published)
+        story.source_times[item.outlet] = min(story.source_times.get(item.outlet, published), published)
         return story
