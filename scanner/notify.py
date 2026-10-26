@@ -10,11 +10,10 @@ from .models import Item
 log = logging.getLogger(__name__)
 
 
-def format_message(item: Item, score: float, sources: set[str], category_label: str, urgent: bool) -> str:
-    mark = "🔴" if urgent else "🟡"
+def format_message(item: Item, mark: str, category_label: str, reason: str) -> str:
     meta = [category_label, html.escape(item.source)]
-    if len(sources) > 1:
-        meta.append(f"🔁 {len(sources)} источника(ов)")
+    if reason:
+        meta.append(reason)
     text = f"{mark} <b>{html.escape(item.title)}</b>\n<i>{' · '.join(meta)}</i>"
     if item.link:
         text += f"\n{html.escape(item.link)}"
@@ -22,20 +21,24 @@ def format_message(item: Item, score: float, sources: set[str], category_label: 
 
 
 class ConsoleNotifier:
-    def send(self, text: str) -> None:
+    def __init__(self):
+        self.counts: dict[str, int] = {}
+
+    def send(self, route, text: str) -> None:
+        self.counts[route.name] = self.counts.get(route.name, 0) + 1
+        print(f"[{route.name}]")
         print(text.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", ""))
         print("-" * 60, flush=True)
 
 
 class TelegramNotifier:
-    def __init__(self, token: str, chat_id: str):
+    def __init__(self, token: str):
         self.url = f"https://api.telegram.org/bot{token}/sendMessage"
-        self.chat_id = chat_id
         self.session = requests.Session()
 
-    def send(self, text: str) -> None:
+    def send(self, route, text: str) -> None:
         payload = {
-            "chat_id": self.chat_id,
+            "chat_id": route.chat,
             "text": text,
             "parse_mode": "HTML",
             "disable_web_page_preview": True,

@@ -7,17 +7,28 @@ poll_interval: 30          # как часто опрашивать ленты, 
 max_age_minutes: 120       # новости старше не присылаем (защита от старья после рестарта)
 db_path: scanner.db       # в Docker: data/scanner.db
 
-thresholds:
-  send: 6                  # минимум баллов, чтобы прислать новость
-  urgent: 10               # с этого балла новость помечается 🔴
-
-# Если одну историю за короткое время публикуют несколько разных источников,
-# она важна, даже если ключевых слов мало.
-corroboration:
-  min_sources: 3
-  min_score: 2             # но хоть какое-то отношение к нашим темам быть должно
+# Одна и та же история из разных СМИ склеивается и приходит один раз (в каждый канал).
+story:
   window_hours: 6
   similarity: 0.5          # 0..1, насколько похожи заголовки, чтобы считаться одной историей
+
+# Каналы-получатели. Одна история может уйти в оба.
+# chat_env — имя переменной окружения с id канала; если она не задана, используется CHAT_ID.
+channels:
+  feed:
+    name: "📰 Лента"
+    chat_env: CHAT_FEED
+    mark: "🟡"
+    min_score: 5                                   # всё интересное
+    corroboration: {sources: 2, min_score: 4}      # или о теме пишут хотя бы 2 СМИ
+
+  urgent:
+    name: "⚡ Срочно"
+    chat_env: CHAT_URGENT
+    mark: "🔴"
+    min_score: 9                                   # сильная новость по ключевым словам
+    burst: {sources: 3, minutes: 30, min_score: 3} # или 3+ разных СМИ написали об этом за 30 минут
+    max_delay_minutes: 30                          # срочное, пришедшее позже 30 мин, уже не срочное
 
 categories:
   russia:  "🇷🇺 Россия"
@@ -114,6 +125,19 @@ keywords:
     keywords: ['bitcoin', 'биткоин', 'btc\b', 'ethereum', 'эфириум', 'eth\b', 'etf\b', 'sec\b',
                'stablecoin', 'стейблкоин', 'tether', 'binance', 'coinbase', 'blackrock',
                'saylor', 'halving', 'халвинг', 'цифров\w* рубл', 'cbdc', 'майнинг', 'криптовалют']
+
+  # Резкие события: сами по себе не считаются (boost), но сильно поднимают новость по теме.
+  breaking:
+    weight: 5
+    boost: true
+    keywords: ['мирн\w* (договор|соглашен|план)', 'peace (deal|agreement|treaty|plan)', 'перемири', 'ceasefire',
+               'объявил\w* войн', 'declares? war', 'военн\w* положени', 'martial law', 'мобилизац',
+               'ядерн\w* (удар|оружи|испытан)', 'nuclear (strike|test)', 'скончал', 'умер\b', 'dies\b', 'died\b',
+               'убит', 'assassinat', 'покушен', 'арестова', 'arrested', 'отставк', 'resign', 'дефолт', 'default',
+               'внеочередн', 'emergency', 'unscheduled', 'неожиданн', 'unexpected', 'surprise', 'впервые',
+               'снят\w* санкц', 'снял\w* санкц', 'отмен\w* санкц', 'lift\w* sanctions', 'нов\w* санкц',
+               'new sanctions', 'national emergency', 'переворот', 'coup\b', 'вторжен', 'invasion',
+               'обвал', 'рухнул', 'crash', 'plunge', 'halt', 'приостанов']
 
   # Действия и события. Сами по себе ничего не дают (boost), но усиливают новость по теме:
   # "ЦБ" — 3 балла, "ЦБ повысил ставку" — уже 6+.

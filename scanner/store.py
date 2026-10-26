@@ -24,12 +24,20 @@ def similarity(a: frozenset[str], b: frozenset[str]) -> float:
 
 @dataclass
 class Story:
-    tokens: frozenset[str]
+    titles: list[frozenset[str]]                                     # слова всех заголовков истории
     best: Item
     score: float
-    created: float = field(default_factory=time.time)
-    sources: set[str] = field(default_factory=set)
-    sent: bool = False
+    created: float                                                   # время первой публикации
+    source_times: dict[str, float] = field(default_factory=dict)    # источник -> когда он её опубликовал
+    sent_to: set[str] = field(default_factory=set)                   # в какие каналы уже отправлена
+
+    @property
+    def sources(self) -> set[str]:
+        return set(self.source_times)
+
+    def sources_within(self, minutes: float) -> int:
+        """Сколько разных источников опубликовали историю за первые N минут."""
+        return sum(1 for t in self.source_times.values() if t - self.created <= minutes * 60)
 
 
 class Store:
@@ -64,20 +72,24 @@ class Store:
     def add_to_story(self, item: Item, score: Score) -> Story:
         """Находит похожую историю за окно времени или заводит новую."""
         toks = tokens(item.title)
-        cutoff = time.time() - self.window
+        published = item.published.timestamp()
+        cutoff = published - self.window
         best_match, best_sim = None, 0.0
         for story in self.stories:
             if story.created < cutoff:
                 continue
-            sim = similarity(toks, story.tokens)
+            sim = max(similarity(toks, t) for t in story.titles)
             if sim > best_sim:
                 best_match, best_sim = story, sim
         if best_match and best_sim >= self.threshold:
             story = best_match
             if score.value > story.score:
                 story.score, story.best = score.value, item
+            story.created = min(story.created, published)
+            if len(story.titles) < 30:
+                story.titles.append(toks)
         else:
-            story = Story(tokens=toks, best=item, score=score.value)
+            story = Story(titles=[toks], best=item, score=score.value, created=published)
             self.stories.append(story)
-        story.sources.add(item.source)
+        story.source_times[item.source] = min(story.source_times.get(item.source, published), published)
         return story

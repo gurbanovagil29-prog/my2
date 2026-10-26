@@ -3,6 +3,7 @@
   python -m scanner              # работать постоянно, слать в Telegram (или в консоль, если нет BOT_TOKEN)
   python -m scanner --dry-run    # то же, но только в консоль
   python -m scanner --once -v    # один проход по свежим новостям с баллами — для настройки config.yaml
+  python -m scanner --once --hours 6   # сколько новостей ушло бы в каждый канал за последние 6 часов
 """
 import argparse
 import asyncio
@@ -17,6 +18,7 @@ import yaml
 from .feeds import FeedFetcher
 from .models import Item
 from .notify import ConsoleNotifier, TelegramNotifier, format_message
+from .routes import Route
 from .scoring import Scorer
 from .store import Store
 
@@ -33,21 +35,18 @@ def load_env(path: Path) -> None:
 
 
 class Scanner:
-    def __init__(self, cfg: dict, notifier, once: bool = False, verbose: bool = False):
+    def __init__(self, cfg: dict, notifier, once: bool = False, verbose: bool = False, hours: float | None = None):
         self.cfg = cfg
         self.notifier = notifier
         self.once = once
         self.verbose = verbose
         self.scorer = Scorer(cfg)
-        corr = cfg["corroboration"]
+        story_cfg = cfg["story"]
         self.store = Store(":memory:" if once else cfg.get("db_path", "scanner.db"),
-                           corr["window_hours"], corr["similarity"])
+                           story_cfg["window_hours"], story_cfg["similarity"])
         self.fetchers = [FeedFetcher(s) for s in cfg["sources"]]
-        self.max_age = timedelta(minutes=cfg.get("max_age_minutes", 120))
-        self.send_at = cfg["thresholds"]["send"]
-        self.urgent_at = cfg["thresholds"]["urgent"]
-        self.corr_sources = corr["min_sources"]
-        self.corr_score = corr["min_score"]
+        self.routes = [Route.from_config(key, c) for key, c in cfg["channels"].items()]
+        self.max_age = timedelta(hours=hours) if hours else timedelta(minutes=cfg.get("max_age_minutes", 120))
 
     async def process(self, item: Item) -> None:
         if self.store.is_seen(item):
@@ -61,14 +60,17 @@ class Scanner:
         story = self.store.add_to_story(item, score)
         if self.verbose and score.value > 0:
             log.info("[%4.1f] %s: %s  %s", score.value, item.source, item.title, score.hits)
-        if story.sent:
-            return
-        corroborated = len(story.sources) >= self.corr_sources and story.score >= self.corr_score
-        if story.score >= self.send_at or corroborated:
-            story.sent = True
-            label = self.cfg["categories"].get(story.best.category, story.best.category)
-            text = format_message(story.best, story.score, story.sources, label, story.score >= self.urgent_at)
-            await asyncio.to_thread(self.notifier.send, text)
+        label = self.cfg["categories"].get(story.best.category, story.best.category)
+        for route in self.routes:
+            if route.key in story.sent_to:
+                continue
+            # Время "сейчас" берём из новости, чтобы --once на старых новостях вёл себя как вживую.
+            reason = route.reason(story, now=item.published.timestamp())
+            if reason is None:
+                continue
+            story.sent_to.add(route.key)
+            text = format_message(story.best, route.mark, label, reason)
+            await asyncio.to_thread(self.notifier.send, route, text)
 
     async def poll_feeds(self) -> None:
         loop = asyncio.get_running_loop()
@@ -76,6 +78,7 @@ class Scanner:
         with ThreadPoolExecutor(max_workers=12) as pool:
             while True:
                 results = await asyncio.gather(*(loop.run_in_executor(pool, f.fetch) for f in self.fetchers))
+                fresh: list[Item] = []
                 for fetcher, items in zip(self.fetchers, results):
                     name = fetcher.source["name"]
                     # Новый источник: всё, что в ленте уже есть, запоминаем без отправки,
@@ -86,9 +89,10 @@ class Scanner:
                             known.add(name)
                             log.info("%s: запомнил %d текущих новостей", name, len(items))
                         continue
-                    # Ленты отдают новые сверху; обрабатываем по хронологии.
-                    for item in reversed(items):
-                        await self.process(item)
+                    fresh.extend(items)
+                # Обрабатываем все источники вместе по хронологии, чтобы видеть, кто опубликовал первым.
+                for item in sorted(fresh, key=lambda i: i.published):
+                    await self.process(item)
                 if self.once:
                     return
                 self.store.cleanup()
@@ -109,24 +113,29 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="печатать в консоль вместо Telegram")
     parser.add_argument("--once", action="store_true", help="один проход по свежим новостям, без базы")
     parser.add_argument("-v", "--verbose", action="store_true", help="показывать баллы всех новостей")
+    parser.add_argument("--hours", type=float, help="с --once: за сколько часов брать новости")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
     load_env(Path(".env"))
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
 
-    token, chat_id = os.getenv("BOT_TOKEN"), os.getenv("CHAT_ID")
-    if args.dry_run or args.once or not (token and chat_id):
+    token = os.getenv("BOT_TOKEN")
+    if args.dry_run or args.once or not token:
         if not (args.dry_run or args.once):
-            log.warning("BOT_TOKEN/CHAT_ID не заданы — вывожу новости в консоль")
+            log.warning("BOT_TOKEN не задан — вывожу новости в консоль")
         notifier = ConsoleNotifier()
     else:
-        notifier = TelegramNotifier(token, chat_id)
+        notifier = TelegramNotifier(token)
 
     try:
-        asyncio.run(Scanner(cfg, notifier, once=args.once, verbose=args.verbose).run())
+        asyncio.run(Scanner(cfg, notifier, once=args.once, verbose=args.verbose, hours=args.hours).run())
     except KeyboardInterrupt:
         pass
+    if args.once:
+        hours = args.hours or cfg.get("max_age_minutes", 120) / 60
+        for name, count in notifier.counts.items():
+            print(f"{name}: {count} за {hours:g} ч (~{count / hours:.1f} в час)")
 
 
 if __name__ == "__main__":
