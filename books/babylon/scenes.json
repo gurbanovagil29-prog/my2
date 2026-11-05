@@ -1,0 +1,134 @@
+{
+  "title": "Самый богатый человек в Вавилоне",
+  "subtitle": "Джордж Клейсон · краткий пересказ",
+  "style": "hand-drawn ink sketch storybook illustration with loose watercolor wash, expressive linework, warm ochre, terracotta and lapis blue palette, ancient Mesopotamia, cinematic composition, no text, no letters",
+  "characters": {
+    "ARKAD_OLD": "elderly wealthy Babylonian man with curled grey beard and kind eyes, wearing deep blue robe with gold trim",
+    "ARKAD_YOUNG": "young Babylonian scribe with short curled black beard, plain beige linen tunic",
+    "ALGAMISH": "old Babylonian moneylender with long white curled beard, dark red robe and gold rings",
+    "BANSIR": "tired middle-aged Babylonian chariot builder with black beard, simple brown work tunic",
+    "KOBBI": "thin Babylonian musician with a lyre, worn green tunic"
+  },
+  "scenes": [
+    {
+      "text": "Древний Вавил+он. Самый богатый город мира. За его могучими стенами торгуют золотом, пряностями и шелками. Но богатство здесь есть далеко не у всех. Здесь каждый день рождаются состояния и разоряются семьи. И почти никто не задумывается, почему одним золото само идёт в руки, а другим не достаётся ни крохи.",
+      "image": "panoramic view of ancient Babylon with ziggurat, Ishtar gate and massive city walls at golden sunset, busy river with boats",
+      "id": "00"
+    },
+    {
+      "text": "Колесничий мастер Банс+ир сидел у своей мастерской и с тоской смотрел на недоделанную колесницу. Работал он всю жизнь, от зари до зари. А кошелёк его был пуст. Он мечтал о большом доме, о красивой одежде для жены, о спокойной старости. Но каждый вечер монеты уходили на хлеб, на масло, на долги — и мечты оставались мечтами.",
+      "image": "BANSIR sitting sadly on a low wall beside an unfinished wooden chariot in a dusty workshop courtyard, holding an empty leather purse",
+      "id": "01"
+    },
+    {
+      "text": "Рядом присел его друг, музыкант К+обби. У него тоже не было ни монеты. «Мы трудимся больше многих, — сказал Банс+ир, — так почему же мы бедны, как рабы?»",
+      "image": "BANSIR and KOBBI sitting together on a wall talking, KOBBI holding a lyre, poor street of ancient Babylon behind them",
+      "id": "02"
+    },
+    {
+      "text": "И тут они вспомнили: их товарищ детства, Арк+ад, стал самым богатым человеком в Вавил+оне. Учились они вместе, начинали одинаково. Что же знает он, чего не знают они? Друзья решили пойти и спросить.",
+      "image": "BANSIR and KOBBI walking through a crowded Babylonian market toward a grand house with palm trees and blue glazed tiles",
+      "id": "03"
+    },
+    {
+      "text": "Арк+ад принял их радушно и выслушал. А потом сказал: «Вы не разбогатели потому, что никогда не искали законов, по которым приходит богатство. А я — искал. Послушайте мою историю». Удача — капризная богиня, она не задерживается надолго. А тот, кто знает законы золота, становится богатым надёжно и навсегда.",
+      "image": "ARKAD_OLD welcoming two poor visitors in a rich courtyard with fountain, oil lamps and carpets, gesturing kindly",
+      "id": "04"
+    },
+    {
+      "text": "Когда-то я был простым писцом и выбивал знаки на глиняных табличках. Однажды ростовщик Алгам+иш, богатейший человек тех дней, заказал мне срочную работу. И я спросил его: как стать богатым?",
+      "image": "ARKAD_YOUNG carving cuneiform on a clay tablet by lamplight, ALGAMISH standing over him watching",
+      "id": "05"
+    },
+    {
+      "text": "Алгам+иш ответил: «Я нашёл путь к богатству, когда понял одно правило. Часть всего, что ты зарабатываешь, принадлежит тебе. Сохраняй хотя бы десятую долю. Сначала заплати себе — а уж потом всем остальным».",
+      "image": "ALGAMISH raising one finger and teaching ARKAD_YOUNG, a single gold coin glowing on the table between them, dramatic warm light",
+      "id": "06"
+    },
+    {
+      "id": "21",
+      "text": "«Но ведь всё, что я зарабатываю, и так моё», — удивился Арк+ад. «Вовсе нет, — ответил Алгам+иш. — Ты платишь сапожнику, портному, булочнику, хозяину жилья. Ты работаешь на всех, кроме себя. Глупец! Ты трудишься, как раб, на своего же господина — на собственный кошелёк».",
+      "image": "ALGAMISH laughing and pointing at a line of merchants, a shoemaker, a tailor and a baker, each taking coins from ARKAD_YOUNG's open hands"
+    },
+    {
+      "text": "Арк+ад так и сделал. Целый год он откладывал каждую десятую монету. А потом отдал накопленное кирпичных дел мастеру Азм+уру, чтобы тот купил у финикийцев драгоценные камни.",
+      "image": "ARKAD_YOUNG handing a small leather bag of coins to a brick maker standing beside stacks of clay bricks",
+      "id": "07"
+    },
+    {
+      "text": "Но финикийцы обманули Азм+ура и продали ему простые стекляшки. Сбережения пропали. «Зачем ты спрашивал о камнях у кирпичника? — усмехнулся Алгам+иш. — Советуйся с теми, кто знает своё дело».",
+      "image": "a disappointed brick maker holding worthless glass beads in his palm at a foreign seaside market with Phoenician ships",
+      "id": "08"
+    },
+    {
+      "text": "Арк+ад начал копить заново. Через год он дал деньги в рост м+еднику, и тот исправно платил проценты. Но все эти проценты Арк+ад тут же тратил на пиры и наряды.",
+      "image": "ARKAD_YOUNG at a lavish feast with food and wine, spending gold coins carelessly",
+      "id": "09"
+    },
+    {
+      "text": "«Ты съедаешь своих детей, — сказал Алгам+иш. — Каждая монета, которую ты сбережёшь, — это раб, что будет работать на тебя. А каждая монета, которую она принесёт, — его дитя. Пусть и они работают».",
+      "image": "symbolic illustration of gold coins multiplying like a growing tree with golden coin fruits, ALGAMISH pointing at it",
+      "id": "10"
+    },
+    {
+      "text": "На этот раз Арк+ад всё понял. Он копил, вкладывал с умом и пускал прибыль снова в дело. Его золото росло, как снежный ком. Через годы Алгам+иш сделал его своим партнёром, а потом оставил ему наследство.",
+      "image": "ARKAD becoming older and richer, counting neat stacks of gold coins in a counting house with shelves of clay tablets, ALGAMISH aged and proud beside him",
+      "id": "11"
+    },
+    {
+      "id": "22",
+      "text": "«Но у нас нет ничего лишнего, — возразил Банс+ир. — Мы едва сводим концы с концами». Арк+ад улыбнулся: «Если вы живёте на все десять монет, то проживёте и на девять. Поверьте, через месяц вы даже не заметите разницы».",
+      "image": "ARKAD_OLD smiling and placing nine coins in one pile and one coin aside on a table, BANSIR and KOBBI watching in surprise"
+    },
+    {
+      "text": "Слава об Арк+аде дошла до самого царя. Вавил+он был богат, но большинство его жителей жили бедно. И царь попросил Арк+ада научить людей тому, что знает он сам.",
+      "image": "the king of Babylon on a throne in a grand palace hall with winged bull statues, speaking to ARKAD_OLD who bows",
+      "id": "12"
+    },
+    {
+      "text": "Арк+ад собрал сто учеников в Храме знаний и рассказал им о семи средствах от тощего кошелька. Средство первое: начни наполнять кошелёк. Из каждых десяти монет откладывай одну. Не говорите, что это слишком мало. С этой одной монеты и начинается любое богатство.",
+      "image": "ARKAD_OLD teaching a crowd of students seated in a temple hall with columns, holding up a leather purse",
+      "id": "13"
+    },
+    {
+      "text": "Второе: управляй своими расходами. Не путай нужды с желаниями — желаний всегда больше, чем денег. Третье: заставь золото приумножаться, пусть оно работает на тебя.",
+      "image": "close-up of hands sorting coins into small piles on a wooden table with clay tablets, careful budgeting",
+      "id": "14"
+    },
+    {
+      "text": "Четвёртое: охраняй свои сокровища от потерь. Не гонись за обещаниями лёгкой наживы, вкладывай туда, где можно вернуть свои деньги. Пятое: сделай своё жильё выгодным вложением — живи в собственном доме.",
+      "image": "a happy Babylonian family in front of their own small house with a little garden and fig tree",
+      "id": "15"
+    },
+    {
+      "text": "Шестое: обеспечь себе доход на будущее, на старость и на семью. Седьмое: развивай своё умение зарабатывать. Чем больше ты знаешь и умеешь, тем больше ты стоишь. Сегодня мы назвали бы это пенсионными накоплениями и самообразованием, но суть за тысячи лет не изменилась.",
+      "image": "an old Babylonian man resting peacefully under a palm while a young craftsman works skillfully in a workshop nearby",
+      "id": "16"
+    },
+    {
+      "text": "А ещё Арк+ад рассказал о пяти законах золота. Золото приходит к тому, кто откладывает хотя бы десятую часть. Оно трудится на того, кто находит ему выгодное дело. Оно держится того, кто советуется с мудрыми.",
+      "image": "five glowing clay tablets standing in a row in a temple, golden light, mystical atmosphere",
+      "id": "17"
+    },
+    {
+      "text": "И оно ускользает от того, кто вкладывает в незнакомое дело, и от того, кто гонится за невозможной прибылью или слушает обманщиков.",
+      "image": "gold coins slipping through the fingers of a greedy man listening to a sly merchant in a dark alley",
+      "id": "18"
+    },
+    {
+      "text": "Банс+ир и К+обби вернулись домой. В тот же вечер каждый из них отложил первую монету. Не много — но это было начало.",
+      "image": "BANSIR at home at night dropping a single coin into a clay jar, KOBBI beside him smiling, warm lamp light",
+      "id": "19"
+    },
+    {
+      "id": "23",
+      "text": "Шли годы. Банс+ир откладывал каждую десятую монету, советовался со знающими людьми и не гнался за лёгкой прибылью. Его мастерская выросла, у него появились подмастерья. А К+обби стал учить музыке детей знатных вавилонян и тоже скопил своё первое золото.",
+      "image": "BANSIR older and prosperous in a large busy chariot workshop with apprentices, a new decorated chariot gleaming in the sun"
+    },
+    {
+      "text": "Главный урок этой книги прост. Богатство — не удача и не тайна. Это привычка: платить сначала себе, тратить с умом и заставлять деньги работать. Вавил+он давно исчез, а эти законы работают до сих пор.",
+      "image": "ancient Babylon ziggurat silhouette at dusk fading into a modern city skyline, gold coins in the foreground, contemplative mood",
+      "id": "20"
+    }
+  ]
+}

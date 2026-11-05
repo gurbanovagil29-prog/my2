@@ -1,0 +1,7 @@
+books/*/build/
+books/*/output/
+books/*/samples/
+books/*/audio/
+books/*/images.log
+books/*/images/tmp.jpg
+__pycache__/
