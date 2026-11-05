@@ -98,6 +98,6 @@ if __name__ == "__main__":
                     "-map", "[vout]", "-map", f"{len(clips)}:a",
                     "-af", f"loudnorm=I=-16:TP=-1.5:LRA=11,afade=t=out:st={total-1.2:.3f}:d=1.2",
                     "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-r", "30",
-                    "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart",
+                    "-c:a", "aac", "-b:a", "192k", "-ac", "2", "-ar", "48000", "-movflags", "+faststart",
                     str(final)], check=True)
     print("done", final, f"{total:.1f}s")
