@@ -5,3 +5,5 @@ books/*/audio/
 books/*/images.log
 books/*/images/tmp.jpg
 __pycache__/
+books/*/build_yt/
+books/*/build_yt.log
