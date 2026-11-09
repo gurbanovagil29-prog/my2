@@ -1,0 +1,26 @@
+<section style="background:#F6F4EF;color:#15233B;font-family:'IBM Plex Sans', Arial, sans-serif;padding:96px 112px 140px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;flex-direction:column;gap:8px">
+<p style="font-size:22px;font-weight:600;color:#A9521A;letter-spacing:2px;text-transform:uppercase">Греки и подразумеваемая волатильность</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:56px;font-weight:600;line-height:1.1">Collar на 40% снижает чувствительность к цене и почти не зависит от волатильности</h2>
+</div>
+<div style="display:flex;gap:40px;align-items:start">
+<div style="width:900px;display:flex;flex-direction:column;gap:14px">
+<table style="width:100%;font-size:23px">
+<tr style="background:#E9E5DC"><th></th><th style="text-align:right">Пут 28&nbsp;000<br>купили</th><th style="text-align:right">Колл 32&nbsp;000<br>продали</th><th style="text-align:right">Collar +<br>фьючерс</th></tr>
+<tr><td>IV, % годовых</td><td style="text-align:right">23,2</td><td style="text-align:right">24,4</td><td style="text-align:right">—</td></tr>
+<tr><td>Дельта</td><td style="text-align:right">−0,20</td><td style="text-align:right">−0,20</td><td style="text-align:right"><b>0,60</b></td></tr>
+<tr><td>Гамма, на 1&nbsp;000 руб.</td><td style="text-align:right">+0,12</td><td style="text-align:right">−0,12</td><td style="text-align:right">≈ 0</td></tr>
+<tr><td>Вега, руб. на +1 п.п. σ</td><td style="text-align:right">+27</td><td style="text-align:right">−28</td><td style="text-align:right">≈ 0</td></tr>
+<tr><td>Тета, руб. в день</td><td style="text-align:right">−7,9</td><td style="text-align:right">+8,5</td><td style="text-align:right">+0,6</td></tr>
+</table>
+<p style="font-size:22px;line-height:1.4"><b>Дельта 0,60:</b> сейчас позиция реагирует на цену на 40% слабее, чем голый фьючерс. <b>Веги и теты пута и колла взаимно гасятся:</b> рост волатильности или ход времени почти не меняют стоимость collar</p>
+<p style="font-size:20px;line-height:1.4;color:#6B7684">Считали сами по формуле Блэка для фьючерса без дисконтирования: опционы маржируемые, премия не платится сразу. Проверка — паритет c − p = F − K выполняется точно. Ро ≈ 0: ставка уже в цене фьючерса</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<img src="fig:02_smile.png" style="width:100%;height:410px;object-fit:contain;background:#FFFFFF;border:1px solid #E2DED5;border-radius:12px">
+<p style="font-size:22px;line-height:1.4;color:#44505F"><b>IV 23–24%</b> — рынок ждёт колебаний Сбера примерно ±8% до экспирации (σ·√T). Улыбка почти симметрична: дальние страйки с обеих сторон дороже, рынок боится резкого движения в любую сторону</p>
+</div>
+</div>
+<p style="position:absolute;left:112px;bottom:56px;width:1300px;font-size:20px;color:#6B7684">На 1 контракт; дельта — в фьючерсах · Excel: листы «Греки и IV», «Проверка формулой»</p>
+<p style="position:absolute;right:112px;bottom:56px;font-size:20px;color:#6B7684">3</p>
+</section>
